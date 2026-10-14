@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Turn your audio into a beautiful waveform video, entirely in your browser.">
+<title>Oscilla — Audio to motion</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#0b0c10;color:#e8e9f0;font-family:Inter,ui-sans-serif,system-ui,sans-serif}button,input,select{font:inherit}button,.button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}input[type=range]{accent-color:#a99aff;width:100%}input[type=color]{width:100%;height:38px;border:1px solid #363640;border-radius:8px;background:#202128;padding:4px}select,input[type=text]{width:100%;background:#202128;border:1px solid #363640;border-radius:8px;padding:9px;color:#eee}label{display:block;font-size:12px;color:#acadb9;margin-bottom:7px}.panel{background:#14151b;border:1px solid #282932;border-radius:16px}.control{margin-top:18px}.btn{border:1px solid #363640;border-radius:9px;padding:10px 16px;background:#24252e;font-size:13px}.primary{background:#b5a4ff;color:#19122f;border-color:#b5a4ff;font-weight:650}canvas{display:block;width:100%;height:auto;border-radius:12px}*:focus-visible{outline:2px solid #b5a4ff;outline-offset:4px}.drop-active{border-color:#b5a4ff!important;background:#272035!important}.tag{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#9a8bd9}#download{display:inline-block;text-decoration:none}video{width:100%;max-height:300px;border-radius:10px;background:#08090d}[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="max-w-7xl mx-auto px-5 sm:px-9 py-7">
+ <header class="flex items-center justify-between border-b border-white/10 pb-6"><a href="#" class="text-xl font-semibold tracking-tight">▥ <span class="ml-2">oscilla<span class="text-violet-300">.</span></span></a><span class="text-xs text-gray-500">AUDIO → MOTION</span></header>
+ <div class="mt-9 mb-8"><div class="tag mb-3">Your sound, made visible</div><h1 class="text-3xl sm:text-4xl font-semibold tracking-tight">Give your audio a little motion.</h1><p class="text-sm text-gray-400 mt-3">Upload a track. Make it yours. Export a video.</p></div>
+ <main class="grid lg:grid-cols-[320px_1fr] gap-6 items-start">
+ <aside class="panel p-5">
+  <h2 class="text-sm font-semibold mb-4">01 <span class="ml-2">Your audio</span></h2>
+  <div id="drop" class="rounded-xl border border-dashed border-gray-600 p-5 text-center transition-colors">
+   <div class="text-violet-300 text-3xl mb-2" aria-hidden="true">↑</div><p class="text-sm">Drop your audio here</p><p class="text-xs text-gray-500 mt-1 mb-3">MP3, WAV, M4A, OGG · up to 250 MB</p><label for="audioFile" class="button btn inline-block text-white mb-0">Browse files</label><input id="audioFile" type="file" accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac" class="sr-only">
+  </div>
+  <p id="fileName" class="text-xs text-gray-400 mt-3 break-all">No track selected</p>
+  <fieldset id="design" class="mt-6 border-t border-white/10 pt-5">
+   <legend class="sr-only">Design settings</legend><h2 class="text-sm font-semibold">02 <span class="ml-2">Make it yours</span></h2>
+   <div class="control"><label for="mode">Visualizer</label><select id="mode"><option value="bars">Mirrored frequency bars</option><option value="wave">Smooth waveform</option></select></div>
+   <div class="grid grid-cols-2 gap-3 control"><div><label for="ink">Wave color</label><input id="ink" type="color" value="#b4a1ff"></div><div><label for="accent">Accent color</label><input id="accent" type="color" value="#64e9da"></div></div>
+   <div class="control"><label for="width">Bar / line width <span id="widthValue" class="float-right">6 px</span></label><input id="width" type="range" min="2" max="20" value="6"></div>
+   <div class="control"><label for="background">Background</label><select id="background"><option value="gradient">Soft gradient</option><option value="solid">Solid color</option><option value="image">Uploaded image</option></select></div>
+   <div class="grid grid-cols-2 gap-3 control"><div><label for="bg1">Background color</label><input id="bg1" type="color" value="#17172f"></div><div id="bg2Wrap"><label for="bg2">Gradient end</label><input id="bg2" type="color" value="#092c32"></div></div>
+   <div id="imageWrap" class="control" hidden><label for="imageFile">Background image (up to 25 MB)</label><input id="imageFile" type="file" accept="image/*" class="text-xs w-full"><button id="clearImage" class="text-xs text-gray-400 mt-2" type="button">Remove image</button></div>
+   <div class="control"><label for="title">Video title</label><input id="title" type="text" maxlength="70" placeholder="Name your sound" value="YOUR SOUND. IN MOTION."></div>
+  </fieldset>
+ </aside>
+ <section class="space-y-5 min-w-0">
+  <div class="panel p-4 sm:p-5"><div class="flex justify-between items-center mb-4"><span class="tag">Live preview</span><span id="badge" class="text-xs text-gray-500">16:9 · 30 FPS</span></div><canvas id="canvas" width="1280" height="720" aria-label="Animated audio visualizer preview"></canvas>
+   <div class="flex items-center gap-4 mt-5"><button id="play" class="btn shrink-0" disabled>▶ Play</button><div class="flex-1"><label for="seek" class="sr-only">Playback position</label><input id="seek" type="range" min="0" max="1" step="0.01" value="0" disabled><div class="flex justify-between text-[10px] text-gray-500"><span id="current">0:00</span><span id="duration">0:00</span></div></div><button id="mute" class="btn" aria-pressed="false" title="Mute preview only">Mute</button></div>
+  </div>
+  <div class="panel p-5"><div class="flex justify-between items-start gap-4"><div><h2 class="text-sm font-semibold">03 <span class="ml-2">Ready for the big screen</span></h2><p class="text-xs text-gray-500 mt-2">Records in real time from the start of your track. Keep this tab visible.</p></div><span class="tag shrink-0">Export</span></div>
+   <div class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 mt-5 items-end"><div><label for="resolution">Resolution</label><select id="resolution"><option value="1280">HD · 1280 × 720</option><option value="1920">Full HD · 1920 × 1080</option></select></div><div><label for="format">Video format</label><select id="format"></select></div><button id="record" class="btn primary" disabled>● Record video</button></div>
+   <div id="recording" hidden class="mt-4"><div class="flex items-center gap-3"><span class="text-sm text-rose-300 flex-1">● Recording <span id="elapsed">0:00</span></span><button id="stop" class="btn">Stop & save</button><button id="cancel" class="btn">Cancel</button></div></div>
+   <p id="status" role="status" aria-live="polite" class="text-xs text-gray-400 mt-4">Your files stay in your browser. No uploads, no account.</p>
+   <div id="result" hidden class="mt-5 border-t border-white/10 pt-5"><video id="outputVideo" controls playsinline preload="metadata"></video><div class="flex items-center justify-between gap-3 mt-3"><span id="outputInfo" class="text-xs text-gray-400"></span><a id="download" class="btn primary">↓ Download video</a></div></div>
+  </div><p class="text-xs text-gray-600 px-1">Made in your browser. Export format depends on your browser’s recording support.</p>
+ </section>
+ </main><footer class="mt-10 pt-5 border-t border-white/10 text-xs text-gray-600 flex justify-between"><span>oscilla / audio canvas studio</span><span>Create something worth hearing.</span></footer>
+</div>
+<audio id="audio" preload="metadata"></audio>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const canvas=$('canvas'), ctx=canvas.getContext('2d'), audio=$('audio');
+let audioContext, analyser, source, destination, monitor, frequencies, samples;
+let audioURL, videoURL, bgImage=null, recorder=null, videoStream=null, chunks=[], recording=false, starting=false, loading=false, cancelled=false, startedAt=0, ready=false;
+const formats=[['video/mp4;codecs=avc1.42E01E,mp4a.40.2','MP4'],['video/mp4','MP4'],['video/webm;codecs=vp9,opus','WebM (VP9)'],['video/webm;codecs=vp8,opus','WebM (VP8)'],['video/webm','WebM']];
+const supported=typeof MediaRecorder!=='undefined' && typeof canvas.captureStream==='function' && !!(window.AudioContext||window.webkitAudioContext);
+if(supported){const seen=new Set();for(const [mime,name] of formats){if(MediaRecorder.isTypeSupported(mime)&&!seen.has(name)){const option=new Option(name,mime);$('format').add(option);seen.add(name);}}}
+if(!$('format').options.length){$('format').add(new Option('Recording unavailable',''));status('Video recording is unavailable in this browser. Try a current desktop browser.');}
+function status(message){$('status').textContent=message;}
+function time(seconds){seconds=Math.max(0,Number.isFinite(seconds)?seconds:0);return Math.floor(seconds/60)+':'+String(Math.floor(seconds%60)).padStart(2,'0');}
+function controls(){const busy=recording||starting;$('play').disabled=!ready||busy||loading;$('seek').disabled=!ready||busy||loading;$('record').disabled=!ready||busy||loading||!$('format').value;$('audioFile').disabled=busy||loading;$('design').disabled=busy;$('resolution').disabled=busy;$('format').disabled=busy;$('recording').hidden=!recording;$('play').textContent=audio.paused?'▶ Play':'Ⅱ Pause';$('badge').textContent=recording?'● RECORDING':'16:9 · 30 FPS';}
+async function graph(){if(!audioContext){audioContext=new (window.AudioContext||window.webkitAudioContext)();source=audioContext.createMediaElementSource(audio);analyser=audioContext.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.84;destination=audioContext.createMediaStreamDestination();monitor=audioContext.createGain();source.connect(analyser);analyser.connect(destination);analyser.connect(monitor);monitor.connect(audioContext.destination);monitor.gain.value=$('mute').getAttribute('aria-pressed')==='true'?0:1;frequencies=new Uint8Array(analyser.frequencyBinCount);samples=new Uint8Array(analyser.fftSize);}await audioContext.resume();}
+function clearResult(){if(videoURL){$('outputVideo').pause();$('outputVideo').removeAttribute('src');$('outputVideo').load();URL.revokeObjectURL(videoURL);videoURL=null;}$('result').hidden=true;$('download').removeAttribute('href');}
+async function loadAudio(file){if(!file||recording||starting||loading)return;if(file.size>250*1024*1024){status('Choose an audio file smaller than 250 MB.');return;}if(!(file.type.startsWith('audio/')||/\.(mp3|wav|m4a|aac|ogg|flac|opus|webm|mp4)$/i.test(file.name))){status('Please choose an audio file.');return;}loading=true;ready=false;audio.pause();controls();clearResult();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(file);$('fileName').textContent=file.name;status('Loading audio…');try{await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{cleanup();reject(new Error('Audio loading timed out. Try another file.'));},30000);function cleanup(){clearTimeout(timer);audio.removeEventListener('loadedmetadata',loaded);audio.removeEventListener('error',failed);}function loaded(){cleanup();resolve();}function failed(){cleanup();reject(new Error('This audio format could not be decoded. Try MP3 or WAV.'));}audio.addEventListener('loadedmetadata',loaded);audio.addEventListener('error',failed);audio.src=audioURL;audio.load();});if(!Number.isFinite(audio.duration)||audio.duration<=0)throw new Error('This file has no usable audio duration.');ready=true;$('seek').max=audio.duration;$('seek').value=0;$('duration').textContent=time(audio.duration);$('current').textContent='0:00';status('Track ready. Customize your canvas, then record.');}catch(error){status(error.message);}finally{loading=false;controls();$('audioFile').value='';}}
+$('audioFile').addEventListener('change',event=>loadAudio(event.target.files[0]));
+for(const name of ['dragenter','dragover'])$('drop').addEventListener(name,event=>{event.preventDefault();$('drop').classList.add('drop-active');});
+for(const name of ['dragleave','drop'])$('drop').addEventListener(name,event=>{event.preventDefault();$('drop').classList.remove('drop-active');});
+$('drop').addEventListener('drop',event=>loadAudio(event.dataTransfer.files[0]));
+window.addEventListener('dragover',event=>event.preventDefault());window.addEventListener('drop',event=>event.preventDefault());
+$('play').onclick=async()=>{try{await graph();if(audio.paused){if(audio.currentTime>=audio.duration)audio.currentTime=0;await audio.play();}else audio.pause();controls();}catch(error){status('Playback failed: '+error.message);}};
+$('seek').oninput=()=>{if(!recording&&!starting)audio.currentTime=Number($('seek').value);};
+$('mute').onclick=()=>{const muted=$('mute').getAttribute('aria-pressed')!=='true';$('mute').setAttribute('aria-pressed',String(muted));$('mute').textContent=muted?'Unmute':'Mute';if(monitor)monitor.gain.value=muted?0:1;};
+audio.addEventListener('timeupdate',()=>{$('seek').value=audio.currentTime;$('current').textContent=time(audio.currentTime);});
+audio.addEventListener('ended',()=>{if(recording)finish(false);controls();});
+audio.addEventListener('error',()=>{if(recording){status('Audio playback failed; saving the captured portion.');finish(false);}});
+for(const name of ['play','pause'])audio.addEventListener(name,controls);
+$('width').oninput=()=>{$('widthValue').textContent=$('width').value+' px';};
+$('background').onchange=()=>{$('imageWrap').hidden=$('background').value!=='image';$('bg2Wrap').hidden=$('background').value!=='gradient';};
+$('resolution').onchange=()=>{canvas.width=Number($('resolution').value);canvas.height=canvas.width*9/16;};
+let imageVersion=0;
+$('imageFile').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>25*1024*1024){status('Choose an image smaller than 25 MB.');event.target.value='';return;}const version=++imageVersion,url=URL.createObjectURL(file),image=new Image();try{await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url;});if(version===imageVersion){bgImage=image;status('Background image ready.');}}catch{status('That image could not be opened. Try PNG or JPEG.');}finally{URL.revokeObjectURL(url);}};
+$('clearImage').onclick=()=>{imageVersion++;bgImage=null;$('imageFile').value='';status('Background image removed.');};
+function roundedBar(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fill();}
+function draw(now){const w=canvas.width,h=canvas.height,scale=w/1280;ctx.fillStyle=$('bg1').value;ctx.fillRect(0,0,w,h);if($('background').value==='gradient'){const g=ctx.createLinearGradient(0,0,w,h);g.addColorStop(0,$('bg1').value);g.addColorStop(1,$('bg2').value);ctx.fillStyle=g;ctx.fillRect(0,0,w,h);}if($('background').value==='image'&&bgImage){const ratio=Math.max(w/bgImage.width,h/bgImage.height);ctx.drawImage(bgImage,(w-bgImage.width*ratio)/2,(h-bgImage.height*ratio)/2,bgImage.width*ratio,bgImage.height*ratio);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(0,0,w,h);}
+ ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=scale;for(let x=0;x<w;x+=80*scale){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+ const live=analyser&&!audio.paused;if(live){analyser.getByteFrequencyData(frequencies);analyser.getByteTimeDomainData(samples);}const color=ctx.createLinearGradient(w*.15,0,w*.85,0);color.addColorStop(0,$('ink').value);color.addColorStop(1,$('accent').value);ctx.fillStyle=color;ctx.strokeStyle=color;ctx.shadowColor=$('ink').value;ctx.shadowBlur=12*scale;const center=h*.51;
+ if($('mode').value==='bars'){const bw=Number($('width').value)*scale,gap=5*scale,n=Math.floor(w*.78/(bw+gap)),left=(w-n*(bw+gap))/2;for(let i=0;i<n;i++){const bin=Math.floor(Math.pow(i/n,1.8)*frequencies?.length*.65)||0;const level=live?frequencies[bin]/255:(!ready?.14+.1*Math.sin(i*.3+now*.001)*Math.sin(i*.13-now*.0007):.012);const bar=Math.max(4*scale,level*h*.38);roundedBar(left+i*(bw+gap),center-bar/2,bw,bar,bw/2);}}
+ else{ctx.lineWidth=Number($('width').value)*scale;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();const n=300;for(let i=0;i<=n;i++){const x=w*.11+(i/n)*w*.78;const value=live?(samples[Math.floor(i/n*(samples.length-1))]-128)/128:(!ready?Math.sin(i*.13+now*.002)*.12*Math.sin(Math.PI*i/n):0);const y=center+value*h*.28;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();}ctx.shadowBlur=0;
+ ctx.fillStyle='rgba(255,255,255,.65)';ctx.font=`${12*scale}px system-ui`;ctx.textAlign='center';ctx.fillText('A U D I O   /   V I S U A L',w/2,h*.19);
+ ctx.fillStyle='#fff';ctx.font=`600 ${32*scale}px system-ui`;const title=$('title').value;ctx.fillText(title,w/2,h*.79,w*.84);ctx.fillStyle='rgba(255,255,255,.4)';ctx.font=`${12*scale}px system-ui`;ctx.fillText('SOUND IN EVERY FRAME',w/2,h*.85);
+ if(recording)$('elapsed').textContent=time((performance.now()-startedAt)/1000);requestAnimationFrame(draw);}
+requestAnimationFrame(draw);
+function finish(discard){if(!recorder||recorder.state==='inactive')return;cancelled=discard;audio.pause();recorder.stop();recording=false;starting=true;status(discard?'Cancelling recording…':'Preparing your video…');controls();}
+$('stop').onclick=()=>finish(false);$('cancel').onclick=()=>finish(true);
+$('record').onclick=async()=>{if(!ready||recording||starting)return;starting=true;controls();clearResult();let currentRecorder;try{await graph();audio.pause();audio.currentTime=0;videoStream=canvas.captureStream(30);const stream=new MediaStream([...videoStream.getVideoTracks(),...destination.stream.getAudioTracks()]);currentRecorder=new MediaRecorder(stream,{mimeType:$('format').value,videoBitsPerSecond:canvas.width===1920?8000000:5000000,audioBitsPerSecond:192000});recorder=currentRecorder;chunks=[];cancelled=false;
+ currentRecorder.ondataavailable=event=>{if(event.data.size)chunks.push(event.data);};
+ currentRecorder.onerror=event=>{cancelled=true;status('Recording failed: '+(event.error?.message||'Encoder error. Try another format or lower resolution.'));audio.pause();if(currentRecorder.state!=='inactive')currentRecorder.stop();};
+ currentRecorder.onstop=()=>{videoStream?.getTracks().forEach(track=>track.stop());videoStream=null;recording=false;starting=false;controls();if(cancelled){chunks=[];status('Recording cancelled. You can try again.');return;}const mime=currentRecorder.mimeType||$('format').value;const blob=new Blob(chunks,{type:mime});chunks=[];if(!blob.size){status('No video was captured. Try another format.');return;}const extension=mime.includes('mp4')?'mp4':'webm';videoURL=URL.createObjectURL(blob);$('outputVideo').src=videoURL;$('download').href=videoURL;const name=$('fileName').textContent.replace(/\.[^.]+$/,'').replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,80)||'oscilla';$('download').download=name+'-visualizer.'+extension;$('outputInfo').textContent=extension.toUpperCase()+' · '+(blob.size/1024/1024).toFixed(1)+' MB';$('result').hidden=false;status('Your video is ready to preview and download.');};
+ currentRecorder.start(1000);recording=true;starting=false;startedAt=performance.now();controls();status('Recording audio and video. Mute affects your speakers only.');await audio.play();
+ }catch(error){if(currentRecorder&&currentRecorder.state!=='inactive'){cancelled=true;currentRecorder.stop();}else{videoStream?.getTracks().forEach(track=>track.stop());videoStream=null;recording=false;starting=false;controls();}status('Could not start recording: '+error.message);}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)status('Return to this tab: background tabs may skip animation frames.');});
+window.addEventListener('beforeunload',event=>{if(recording||starting){event.preventDefault();event.returnValue='';}});
+controls();
+</script>
+</body>
+</html>
